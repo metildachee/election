@@ -82,10 +82,10 @@ App = {
       return electionInstance.candidatesCount();
     }).then(function (candidatesCount) {
       var candidatesResults = $("#candidatesResults");
-      // candidatesResults.empty();
+      candidatesResults.empty();
 
       var candidatesSelect = $('#candidatesSelect');
-      // candidatesSelect.empty();
+      candidatesSelect.empty();
 
       console.log("candidate count", candidatesCount)
       for (var i = 1; i <= candidatesCount; i++) {
