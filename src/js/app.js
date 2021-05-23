@@ -16,7 +16,7 @@ App = {
       web3 = new Web3(web3.currentProvider);
     } else {
       // Specify default instance if no web3 instance provided
-      App.web3Provider = new Web3.providers.HttpProvider('http://localhost:7545');
+      App.web3Provider = new Web3.providers.HttpProvider('HTTP://127.0.0.1:7545');
       web3 = new Web3(App.web3Provider);
     }
     return App.initContract();
@@ -28,8 +28,26 @@ App = {
       App.contracts.Election = TruffleContract(election);
       // Connect provider to interact with contract
       App.contracts.Election.setProvider(App.web3Provider);
+      App.listenForEvents();
 
       return App.render();
+    });
+  },
+
+  // Listen for events emitted from the contract
+  listenForEvents: function () {
+    App.contracts.Election.deployed().then(function (instance) {
+      // Restart Chrome if you are unable to receive this event
+      // This is a known issue with Metamask
+      // https://github.com/MetaMask/metamask-extension/issues/2393
+      instance.votedEvent({}, {
+        fromBlock: 0,
+        toBlock: 'latest'
+      }).watch(function (error, event) { // this is how we watch the events
+        console.log("event triggered", event)
+        // Reload when a new vote is recorded
+        App.render();
+      });
     });
   },
 
@@ -37,7 +55,6 @@ App = {
     var electionInstance;
     var loader = $("#loader");
     var content = $("#content");
-
     loader.show();
     content.hide();
 
@@ -51,24 +68,26 @@ App = {
     //     console.log(account);
     //   }
     // });
-    if(window.ethereum){
-      ethereum.enable().then(function(acc){
-          App.account = acc[0];
-          $("#accountAddress").html("Your Account: " + App.account);
+    if (window.ethereum) {
+      ethereum.enable().then(function (acc) {
+        App.account = acc[0];
+        $("#accountAddress").html("Your Account: " + App.account);
       });
-  }
+    }
 
     // Load contract data
     App.contracts.Election.deployed().then(function (instance) {
       electionInstance = instance;
+      console.log(electionInstance)
       return electionInstance.candidatesCount();
     }).then(function (candidatesCount) {
       var candidatesResults = $("#candidatesResults");
-      candidatesResults.empty();
+      // candidatesResults.empty();
 
       var candidatesSelect = $('#candidatesSelect');
-      candidatesSelect.empty();
+      // candidatesSelect.empty();
 
+      console.log("candidate count", candidatesCount)
       for (var i = 1; i <= candidatesCount; i++) {
         electionInstance.candidates(i).then(function (candidate) {
           var id = candidate[0];
@@ -85,7 +104,7 @@ App = {
         });
       }
       // return electionInstance.candidates(App.account);
-      return electionInstance.candidate;
+      return electionInstance.voters(App.account);
     }).then(function (hasVoted) {
       // Do not allow a user to vote
       if (hasVoted) {
